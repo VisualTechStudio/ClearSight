@@ -1,5 +1,5 @@
 <div align="center">
-             <img src="./logo/logo.webp" />
+             <img src="./logo.webp" />
              <h1>ClearSight(明澈之眼)For Android</h1>
   帮助您检查Android设备是否处于可信环境
   <br>
