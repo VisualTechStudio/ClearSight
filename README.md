@@ -26,13 +26,12 @@ Xiaomi Pad 6 Pro (Liuqin CN) | HyperOS 3.0.5.0 (Android 15) | 否 | KernelSU LKM
 Xiaomi Pad 6 Pro (Liuqin CN) | HyperOS 3.0.303.50 (Android 16) | CoolApk@做梦书 | FolkPatch | 工作正常且全部通过
 
 
-
 ### 主要功能
 检测类别 | 检测项 | 实现方式
 --------- | ------ | --------
 文件 | Scene、TWRP、OrangeFox、MT管理器等App或其他工具产生的文件等 | Android Sandbox / 所有文件访问权(MANAGE_EXTERNAL_STORAGE) / SU
 Apps | Magisk(及其分支)、KernelSU(及其分支)、Apatch(及其分支)、Scene、MT管理器、LSPosed模块等 | Android PackageManager API / SU
-系统规则 | ADB、无障碍、SELinux、系统指纹、机型配置等 | /
+系统规则 | ADB、系统指纹、机型配置等 | getprop
 
 # 进一步开发ClearSight(明澈之眼)
 
