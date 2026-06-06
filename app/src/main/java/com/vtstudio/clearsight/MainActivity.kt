@@ -310,32 +310,32 @@ fun ClearSightScreen() {
             }
         }
 
+        if (isHmaSuspicion) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isDark) Color(0xFF332500) else Color(0xFFFFF9E6)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Text(
+                    text = "您似乎正在使用HMA(OSS)进行应用列表隐藏，但泄露了一些痕迹",
+                    modifier = Modifier.padding(16.dp),
+                    color = if (isDark) Color(0xFFFFD666) else Color(0xFFB78103),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (isHmaSuspicion) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isDark) Color(0xFF332500) else Color(0xFFFFF9E6)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                    ) {
-                        Text(
-                            text = "您似乎正在使用HMA(OSS)进行应用列表隐藏，但泄露了一些痕迹",
-                            modifier = Modifier.padding(16.dp),
-                            color = if (isDark) Color(0xFFFFD666) else Color(0xFFB78103),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
             itemsIndexed(categories) { index, category ->
                 val isExpanded = expandedStates.getOrNull(index) ?: true
                 val categoryBg = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
