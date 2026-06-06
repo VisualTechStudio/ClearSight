@@ -25,10 +25,10 @@ ClearSight（明澈之眼）是一款 Android 设备安全检测应用，旨在�
 | 特性 | 描述 |
 |------|------|
 | **多维度检测** | 支持文件级、应用级、系统级三层检测 |
-| **自适应引擎** | 根据设备权限状态自动选择最优检测策略 |
-| **实时反馈** | 即时显示检测结果，支持动态刷新 |
-| **可配置性** | 通过配置文件自定义检测规则 |
-| **轻量级** | 单Activity架构，资源占用低 |
+| **自适应引擎** | 根据设备 Root 状态自动选择最佳检测策略 (SU/PM Shell vs API) |
+| **实时反馈** | 即时显示检测结果，支持水印防伪 |
+| **可配置性** | 通过 Assets 配置文件自定义检测规则 |
+| **现代化 UI** | 基于 Jetpack Compose 的单 Activity 架构，支持深色模式 |
 
 ### 1.2 已测试设备
 
@@ -421,22 +421,16 @@ val isHmaSuspicion = categories.find { it.name == "Apps" }?.subItems?.any {
 | 依赖 | 版本 |
 |------|------|
 | Gradle | 8.5+ |
-| Kotlin | 1.9+ |
-| Compose Compiler | 1.5+ |
-| minSdkVersion | 24 (Android 7.0) |
-| targetSdkVersion | 34 (Android 14) |
+| Kotlin | 2.0+ (Compose Compiler 嵌入) |
+| compileSdk | 37 |
+| targetSdkVersion | 35 |
+| minSdkVersion | 26 (Android 8.0) |
 
 ### 8.2 构建命令
 
 ```bash
-# 构建release版本
+# 构建 Release V1.1 版本
 ./gradlew assembleRelease
-
-# 构建debug版本
-./gradlew assembleDebug
-
-# 运行测试
-./gradlew test
 ```
 
 ### 8.3 自定义检测规则
