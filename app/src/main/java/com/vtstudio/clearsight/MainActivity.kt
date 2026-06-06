@@ -96,7 +96,7 @@ fun ClearSightScreen() {
     }
     val version = remember { getAppVersion(context) }
     val buildInfo = remember { getBuildInfo(context) }.split("-").firstOrNull() ?: "release"
-    val watermarkText = "$startTime | $buildInfo | V$version"
+    val watermarkText = "ClearSight(明澈之眼) | $startTime | V$version - $buildInfo"
 
     LaunchedEffect(isPollingActive, hasStoragePermission) {
         if (isPollingActive && !hasStoragePermission) {
@@ -138,7 +138,7 @@ fun ClearSightScreen() {
     val statusText = when {
         hasCriticalIssue -> "危险"
         hasSuspiciousIssue -> "可疑"
-        else -> "正常环境"
+        else -> "可信环境"
     }
     val baseColor = when {
         hasCriticalIssue -> Color(0xFFEF4444)
@@ -511,7 +511,7 @@ fun ClearSightScreen() {
             },
             title = {
                 Text(
-                    text = if (category.name == "Files") "未检测到的安全特征项" else "未安装的潜在风险App",
+                    text = if (category.name == "Files") "未检测到的风险文件" else "未检测到的风险App",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = titleColor
