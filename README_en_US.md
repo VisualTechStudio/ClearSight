@@ -34,13 +34,15 @@ ClearSight is an Android device security detection application designed to help 
 
 | Model | OS Version | Ported? | Root Solution | Status |
 |------|---------|-----------|---------|---------|
+| OnePlus 15 (Infiniti CN) | ColorOS 16.0.8.301 (Android 16) | No | KowSU LKM | Working perfectly |
 | OnePlus Ace 3 Pro (Corvette CN) | ColorOS 16.0.5.501 (Android 16) | No | ReSukiSU GKI | Working perfectly |
 | OnePlus Ace 3 Pro (Corvette CN) | ColorOS 16.0.7.207 (Android 16) | CoolApk@空白没有输 | KernelSU LKM | Working perfectly |
+| Redmi K40 (Alioth CN) | HyperOS 3.0 (Android 16) | Unknown | FolkPatch Full | Working perfectly |
 | Xiaomi Mix 2s (Polaris CN) | HyperOS 3.0.5.0 (Android 16) | No | Magisk Alpha | Working with partial pass |
 | Xiaomi Mix 2s (Polaris CN) | HyperOS 3.0.5.0 (Android 16) | CoolApk@洛雪_QwQ | KernelSU Third-party | Working perfectly |
 | Xiaomi Pad 6 Pro (Liuqin CN) | MIUI 14.0.5.0 (Android 13) | No | Magisk Alpha | Working with partial pass |
 | Xiaomi Pad 6 Pro (Liuqin CN) | HyperOS 3.0.5.0 (Android 15) | No | KernelSU LKM | Working perfectly |
-| Xiaomi Pad 6 Pro (Liuqin CN) | HyperOS 3.0.303.50 (Android 16) | CoolApk@做梦书 | FolkPatch | Working perfectly |
+| Xiaomi Pad 6 Pro (Liuqin CN) | HyperOS 3.0.303.50 (Android 16) | CoolApk@做梦书 | FolkPatch Full | Working perfectly |
 
 ---
 
@@ -191,9 +193,13 @@ Generated APK is located at `app/build/outputs/apk/release/`.
 
 ---
 
-## VIII. License
+## VIII. Contributors
 
-This project is licensed under the **MIT License**.
+| Name | Role |
+|------|------|
+| [@linmana](https://github.com/linmana) | Test device: OnePlus 15 |
+| [@Shayne_Hui](https://github.com/ShayneHui) | Code, Test device: Redmi K40 |
+| [@KL_Xydwg01](https://github.com/VisualTechStudio/) | Code, Test devices: OnePlus Ace 3 Pro, Xiaomi Pad 6 Pro, Xiaomi Mix 2s |
 
 ---
 
