@@ -24,7 +24,7 @@ ClearSight（明澈之眼）是一款 Android 设备安全检测应用，旨在�
 
 | 特性 | 描述 |
 |------|------|
-| **多维度检测** | 支持文件级、应用级、系统级（Key Attestation）三层检测 |
+| **多维度检测** | 支持文件级、应用级、系统级（Key Attestation）三层检测 | @linmana
 | **底层信息面板** | 实时显示设备硬件、内核、系统指纹及安全补丁状态 |
 | **自适应引擎** | 根据设备 Root 状态自动选择最佳检测策略 (SU/PM Shell vs API) |
 | **实时反馈** | 即时显示检测结果，支持动态水印防伪 |
@@ -34,13 +34,15 @@ ClearSight（明澈之眼）是一款 Android 设备安全检测应用，旨在�
 
 | 机型 | 系统版本 | 是否移植包 | Root方案 | 工作状态 |
 |------|---------|-----------|---------|---------|
+| OnePlus 15 (Infiniti CN) | ColorOS 16.0.8.301 (Android 16) | 否 | KowSU LKM | 工作正常且全部通过 |
 | OnePlus Ace 3 Pro (Corvette CN) | ColorOS 16.0.5.501 (Android 16) | 否 | ReSukiSU GKI | 工作正常且全部通过 |
 | OnePlus Ace 3 Pro (Corvette CN) | ColorOS 16.0.7.207 (Android 16) | CoolApk@空白没有输 | KernelSU LKM | 工作正常且全部通过 |
+| Redmi K40 (Alioth CN) | HyperOS 3.0 (Android 16) | 未知 | FolkPatch Full | 工作正常且全部通过 |
 | Xiaomi Mix 2s (Polaris CN) | HyperOS 3.0.5.0 (Android 16) | 否 | Magisk Alpha | 工作正常但部分通过 |
 | Xiaomi Mix 2s (Polaris CN) | HyperOS 3.0.5.0 (Android 16) | CoolApk@洛雪_QwQ | KernelSU 三方构建 | 工作正常且全部通过 |
 | Xiaomi Pad 6 Pro (Liuqin CN) | MIUI 14.0.5.0 (Android 13) | 否 | Magisk Alpha | 工作正常但部分通过 |
 | Xiaomi Pad 6 Pro (Liuqin CN) | HyperOS 3.0.5.0 (Android 15) | 否 | KernelSU LKM | 工作正常且全部通过 |
-| Xiaomi Pad 6 Pro (Liuqin CN) | HyperOS 3.0.303.50 (Android 16) | CoolApk@做梦书 | FolkPatch | 工作正常且全部通过 |
+| Xiaomi Pad 6 Pro (Liuqin CN) | HyperOS 3.0.303.50 (Android 16) | CoolApk@做梦书 | FolkPatch Full | 工作正常且全部通过 |
 
 ---
 
@@ -191,9 +193,14 @@ for (x in -200..size.width.toInt() + 200 step 500) {
 
 ---
 
-## 八、许可证
+## 八、贡献者
 
-本项目采用 **MIT License** 授权。
+| 名字 | 方法 |
+|------|------|
+| [@linmana](https://github.com/linmana) | 测试设备 OnePlus 15 |
+| [@Shayne_Hui](https://github.com/ShayneHui) | 代码、测试设备:Redmi K40 |
+| [@KL_Xydwg01](https://github.com/VisualTechStudio/) | 代码、测试设备:OnePlus Ace 3 Pro、Xiaomi Pad 6 Pro、Xiaomi Mix 2s |
+
 
 ---
 
