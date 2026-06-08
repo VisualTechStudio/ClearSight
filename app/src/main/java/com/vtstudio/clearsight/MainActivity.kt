@@ -56,7 +56,7 @@ fun ClearSightScreen() {
     var refreshTrigger by remember { mutableIntStateOf(0) }
     val categories = remember(refreshTrigger) {
         val loaded = loadAllCategories(context)
-        val defaultOrder = listOf("Security", "Apps", "Files")
+        val defaultOrder = listOf("Bootloader/TEE/Key", "System properties", "Apps", "Files")
         
         loaded.sortedWith(
             compareByDescending<CheckCategory> { cat ->
@@ -96,8 +96,6 @@ fun ClearSightScreen() {
     Box(modifier = Modifier
         .fillMaxSize()
         .background(backgroundColor)
-        .statusBarsPadding()
-        .navigationBarsPadding()
         .drawWithContent {
             drawContent()
             val rotation = -30f
@@ -193,63 +191,77 @@ fun MainContent(
     var showInfoDialogForCategory by remember { mutableStateOf<CheckCategory?>(null) }
     val expandedStates = remember(categories.size) { mutableStateListOf<Boolean>().apply { repeat(categories.size) { add(true) } } }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text(text = "ClearSight", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = titleColor)
-                Text(text = "明澈之眼", fontSize = 14.sp, color = subTitleColor, modifier = Modifier.padding(top = 4.dp))
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(40.dp).background(if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), shape = RoundedCornerShape(20.dp)).clickable { onRefresh() },
-                    contentAlignment = Alignment.Center
-                ) { Text("↻", fontSize = 24.sp, color = titleColor, modifier = Modifier.offset(y = (-2).dp)) }
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                
-                Box(
-                    modifier = Modifier.size(40.dp).background(if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), shape = RoundedCornerShape(20.dp)).clickable { onOpenSettings() },
-                    contentAlignment = Alignment.Center
-                ) { Text("⚙", fontSize = 20.sp, color = titleColor) }
-            }
-        }
+    val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = cardColor)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = statusText, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (hasCriticalIssue) Color(0xFFEF4444) else textColor)
-                    Spacer(modifier = Modifier.height(8.dp)) // 往下移一点
-                    Text(text = "V $version", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = textColor.copy(alpha = 0.5f))
-                }
-                
-                Column(horizontalAlignment = Alignment.End) {
-                    val buildTypeStr = if (buildInfo.startsWith("debug")) "DEBUG" else "RELEASE"
-                    Text(text = "BUILD", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = textColor.copy(alpha = 0.4f))
-                    Text(text = buildTypeStr, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = textColor.copy(alpha = 0.7f))
+    Column(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                top = statusBarPadding + 16.dp,
+                bottom = navBarPadding + 16.dp,
+                start = 16.dp,
+                end = 16.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Text(text = "ClearSight", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = titleColor)
+                        Text(text = "明澈之眼", fontSize = 14.sp, color = subTitleColor, modifier = Modifier.padding(top = 4.dp))
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier.size(40.dp).background(if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), shape = RoundedCornerShape(20.dp)).clickable { onRefresh() },
+                            contentAlignment = Alignment.Center
+                        ) { Text("↻", fontSize = 24.sp, color = titleColor, modifier = Modifier.offset(y = (-2).dp)) }
+                        
+                        Spacer(modifier = Modifier.width(12.dp))
+                        
+                        Box(
+                            modifier = Modifier.size(40.dp).background(if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), shape = RoundedCornerShape(20.dp)).clickable { onOpenSettings() },
+                            contentAlignment = Alignment.Center
+                        ) { Text("⚙", fontSize = 20.sp, color = titleColor) }
+                    }
                 }
             }
-        }
 
-        if (isHmaSuspicion) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF332500) else Color(0xFFFFF9E6))) {
-                Text(text = "您似乎正在使用HMA(OSS)进行应用列表隐藏，但泄露了一些痕迹", modifier = Modifier.padding(16.dp), color = if (isDark) Color(0xFFFFD666) else Color(0xFFB78103), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            item {
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = cardColor)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = statusText, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (hasCriticalIssue) Color(0xFFEF4444) else textColor)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = "V $version", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = textColor.copy(alpha = 0.5f))
+                        }
+                        
+                        Column(horizontalAlignment = Alignment.End) {
+                            val buildTypeStr = if (buildInfo.startsWith("debug")) "DEBUG" else "RELEASE"
+                            Text(text = "BUILD", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = textColor.copy(alpha = 0.4f))
+                            Text(text = buildTypeStr, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = textColor.copy(alpha = 0.7f))
+                        }
+                    }
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        DeviceInfoSection(deviceInfo, isDark)
+            if (isHmaSuspicion) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF332500) else Color(0xFFFFF9E6))) {
+                        Text(text = "您似乎正在使用HMA(OSS)进行应用列表隐藏，但泄露了一些痕迹", modifier = Modifier.padding(16.dp), color = if (isDark) Color(0xFFFFD666) else Color(0xFFB78103), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+            
+            item {
+                DeviceInfoSection(deviceInfo, isDark)
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             itemsIndexed(categories) { index, category ->
                 val isExpanded = expandedStates.getOrNull(index) ?: true
                 val categoryBg = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
@@ -301,7 +313,7 @@ fun MainContent(
                                                     Text(text = if (subItem.isCritical) "[危险] " else "[可疑] ", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (subItem.isCritical) Color(0xFFEF4444) else Color(0xFFFF9500))
                                                     Text(text = subItem.appName ?: subItem.cleanPath, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = titleColor)
                                                 }
-                                                if (category.name == "Security" && subItem.result != null) {
+                                                if ((category.name == "Bootloader/TEE/Key" || category.name == "System properties") && subItem.result != null) {
                                                     Text(text = "返回值: ${subItem.result}", fontSize = 10.sp, color = subTitleColor.copy(alpha = 0.7f), modifier = Modifier.padding(top = 2.dp))
                                                 }
                                                 Text(text = "方法: ${subItem.checkMethod}", fontSize = 10.sp, color = subTitleColor.copy(alpha = 0.7f), modifier = Modifier.padding(top = 1.dp))
@@ -324,7 +336,7 @@ fun MainContent(
         AlertDialog(
             onDismissRequest = { showInfoDialogForCategory = null },
             confirmButton = { TextButton(onClick = { showInfoDialogForCategory = null }) { Text("确定", color = Color(0xFF34C759), fontWeight = FontWeight.Bold) } },
-            title = { Text(text = when(category.name) { "Files" -> "未检测到的风险文件"; "Apps" -> "未检测到的风险App"; "Security" -> "安全检测详情"; else -> category.name }, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = titleColor) },
+            title = { Text(text = when(category.name) { "Files" -> "未检测到的风险文件"; "Apps" -> "未检测到的风险App"; "Bootloader/TEE/Key" -> "硬件与密钥安全详情"; "System properties" -> "系统属性详情"; else -> category.name }, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = titleColor) },
             text = {
                 if (dialogCleanItems.isEmpty()) { Text("所有配置的风险拦截项均已触发异常。", color = subTitleColor, fontSize = 13.sp) }
                 else {
@@ -335,7 +347,7 @@ fun MainContent(
                                     if (category.name == "Apps" && item.appIcon != null) { Image(bitmap = item.appIcon.toBitmap(width = 40, height = 40).asImageBitmap(), contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(20.dp)) }
                                     Column {
                                         Text(text = item.appName ?: item.cleanPath, fontSize = 12.sp, color = titleColor, fontWeight = FontWeight.Medium)
-                                        if (category.name == "Security" && item.result != null) { Text(text = "返回值: ${item.result}", fontSize = 9.sp, color = Color(0xFF34C759).copy(alpha = 0.7f), modifier = Modifier.padding(top = 2.dp)) }
+                                        if ((category.name == "Bootloader/TEE/Key" || category.name == "System properties") && item.result != null) { Text(text = "返回值: ${item.result}", fontSize = 9.sp, color = Color(0xFF34C759).copy(alpha = 0.7f), modifier = Modifier.padding(top = 2.dp)) }
                                         Text(text = "方法: ${item.checkMethod}", fontSize = 9.sp, color = Color(0xFF34C759).copy(alpha = 0.7f), modifier = Modifier.padding(top = 1.dp))
                                     }
                                 }

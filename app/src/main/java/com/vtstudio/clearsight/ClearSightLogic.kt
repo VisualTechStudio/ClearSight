@@ -89,13 +89,33 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
             result = "Level: ${attestation.securityLevel}"
         ))
 
+        val teeImpl = when {
+            File("/dev/trusty-ipc-dev0").exists() -> "Trusty (Google)"
+            File("/dev/qseecom").exists() -> "QTEE (Qualcomm)"
+            File("/dev/teetz").exists() -> "TEE (MediaTek)"
+            else -> "Generic TEE"
+        }
+        val isTeeHealthy = attestation.securityLevel != "Software" && 
+                          attestation.verifiedBootState == "Verified" && 
+                          attestation.isLocked
+
+        items.add(CheckSubItem(
+            rawPath = "TEE OS",
+            cleanPath = "TEE 可信执行环境",
+            isFound = !isTeeHealthy,
+            isCritical = true,
+            checkMethod = "TrustZone / Secure World",
+            result = if (isTeeHealthy) "正常 ($teeImpl)" 
+                     else "受损 (${attestation.verifiedBootState} / ${attestation.securityLevel})"
+        ))
+
         items.add(CheckSubItem(
             rawPath = "Device Locked",
             cleanPath = "设备引导加载程序(Bootloader)已解锁",
             isFound = !attestation.isLocked,
             isCritical = !attestation.isLocked,
             checkMethod = "Hardware Attestation (ASN.1)",
-            result = if (attestation.isLocked) "Locked (Secure)" else "Unlocked / Unknown"
+            result = if (attestation.isLocked) "Locked (Secure)" else "Unlocked"
         ))
 
         val revocationStatus = checkRevocation(attestation.serials)
@@ -130,36 +150,104 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
         items
     }
 
+    val systemSubItems = mutableListOf<CheckSubItem>()
+    val selinuxStatus = try {
+        val process = Runtime.getRuntime().exec("getenforce")
+        process.inputStream.bufferedReader().use { it.readLine()?.trim() ?: "Enforcing" }
+    } catch (_: Exception) { "Enforcing" }
+
+    systemSubItems.add(CheckSubItem(
+        rawPath = "SELinux Status",
+        cleanPath = "SELinux",
+        isFound = selinuxStatus != "Enforcing",
+        isCritical = selinuxStatus != "Enforcing",
+        checkMethod = "Shell getenforce",
+        result = selinuxStatus
+    ))
+
+    val adbEnabled = android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.ADB_ENABLED, 0) != 0
+    systemSubItems.add(CheckSubItem(
+        rawPath = "USB Debugging",
+        cleanPath = "USB 调试",
+        isFound = adbEnabled,
+        isCritical = false,
+        checkMethod = "Settings.Global",
+        result = if (adbEnabled) "Enabled" else "Disabled"
+    ))
+
+    val devMode = android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) != 0
+    systemSubItems.add(CheckSubItem(
+        rawPath = "Developer Options",
+        cleanPath = "开发者选项",
+        isFound = devMode,
+        isCritical = false,
+        checkMethod = "Settings.Global",
+        result = if (devMode) "Enabled" else "Disabled"
+    ))
+
+    // Pre-add system entries from crosscheck.conf as "Normal"
+    for ((pkg, name) in appFallbackNames) {
+        if (pkg.startsWith("system.")) {
+            systemSubItems.add(CheckSubItem(
+                rawPath = pkg,
+                cleanPath = name,
+                isFound = false,
+                isCritical = false,
+                checkMethod = "System Integrity Check",
+                result = "Normal"
+            ))
+        }
+    }
+
     val fileResults = fileSubItems.associateBy { it.cleanPath }
 
-    for ((pkgName, paths) in crossCheckMap) {
-        val triggeringPath = paths.find { fileResults[it]?.isFound == true }
+    for ((id, paths) in crossCheckMap) {
+        val triggeringPath = paths.find { fileResults[id]?.isFound == true || fileResults[it]?.isFound == true }
         if (triggeringPath != null) {
-            val existingIndex = appSubItems.indexOfFirst { it.cleanPath == pkgName }
-            val identity = resolveAppIdentity(context, pkgName, hasRootPermission)
-
-            if (existingIndex != -1) {
-                val originalItem = appSubItems[existingIndex]
-                appSubItems[existingIndex] = originalItem.copy(
+            if (id.startsWith("system.")) {
+                val index = systemSubItems.indexOfFirst { it.rawPath == id }
+                val displayName = appFallbackNames[id] ?: id.removePrefix("system.")
+                val newItem = CheckSubItem(
+                    rawPath = id,
+                    cleanPath = displayName,
                     isFound = true,
+                    isCritical = true,
                     checkMethod = "File Trace: $triggeringPath",
-                    result = "Matched Trace: $triggeringPath",
-                    appName = identity.first ?: originalItem.appName,
-                    appIcon = identity.second ?: originalItem.appIcon
+                    result = "$displayName"
                 )
+                if (index != -1) {
+                    systemSubItems[index] = newItem
+                } else {
+                    systemSubItems.add(newItem)
+                }
             } else {
-                appSubItems.add(
-                    CheckSubItem(
-                        rawPath = pkgName,
-                        cleanPath = pkgName,
+                val existingIndex = appSubItems.indexOfFirst { it.cleanPath == id }
+                val identity = resolveAppIdentity(context, id, hasRootPermission)
+
+                if (existingIndex != -1) {
+                    val originalItem = appSubItems[existingIndex]
+                    appSubItems[existingIndex] = originalItem.copy(
                         isFound = true,
                         isCritical = true,
                         checkMethod = "File Trace: $triggeringPath",
                         result = "Matched Trace: $triggeringPath",
-                        appName = identity.first,
-                        appIcon = identity.second
+                        appName = identity.first ?: originalItem.appName,
+                        appIcon = identity.second ?: originalItem.appIcon
                     )
-                )
+                } else {
+                    appSubItems.add(
+                        CheckSubItem(
+                            rawPath = id,
+                            cleanPath = id,
+                            isFound = true,
+                            isCritical = true,
+                            checkMethod = "File Trace: $triggeringPath",
+                            result = "Matched Trace: $triggeringPath",
+                            appName = identity.first,
+                            appIcon = identity.second
+                        )
+                    )
+                }
             }
         }
     }
@@ -167,7 +255,8 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
     return listOf(
         CheckCategory(name = "Files", subItems = fileSubItems, hasIssue = fileSubItems.any { it.isFound }),
         CheckCategory(name = "Apps", subItems = appSubItems, hasIssue = appSubItems.any { it.isFound }),
-        CheckCategory(name = "Security", subItems = securitySubItems, hasIssue = securitySubItems.any { it.isFound })
+        CheckCategory(name = "Bootloader/TEE/Key", subItems = securitySubItems, hasIssue = securitySubItems.any { it.isFound }),
+        CheckCategory(name = "System properties", subItems = systemSubItems, hasIssue = systemSubItems.any { it.isFound })
     )
 }
 
@@ -386,6 +475,7 @@ fun checkPathsWithNormalApi(paths: List<String>): Map<String, Pair<Boolean, Stri
 data class AttestationResult(
     val securityLevel: String,
     val isLocked: Boolean,
+    val verifiedBootState: String,
     val serials: List<String>,
     val isGoogleRoot: Boolean,
     val rootSubject: String
@@ -410,7 +500,7 @@ fun checkKeyAttestation(): AttestationResult {
         kpg.generateKeyPair()
 
         val chain = keyStore.getCertificateChain(alias)
-        if (chain == null || chain.isEmpty()) return AttestationResult("Unknown", isLocked = false, serials = emptyList(), isGoogleRoot = false, rootSubject = "No Chain")
+        if (chain == null || chain.isEmpty()) return AttestationResult("Unknown", isLocked = false, verifiedBootState = "Unknown", serials = emptyList(), isGoogleRoot = false, rootSubject = "No Chain")
 
         val rootCert = chain.last() as X509Certificate
         val rootSubject = rootCert.subjectDN.name
@@ -431,20 +521,29 @@ fun checkKeyAttestation(): AttestationResult {
         val serials = (0 until chain.size - 1).map { (chain[it] as X509Certificate).serialNumber.toString(16).lowercase() }
 
         val leafCert = chain[0] as X509Certificate
-        val extensionData = leafCert.getExtensionValue("1.3.6.1.4.1.11129.2.1.17") ?: return AttestationResult("Software", isLocked = false, serials = serials, isGoogleRoot = isGoogleRoot, rootSubject = rootSubject)
+        val extensionData = leafCert.getExtensionValue("1.3.6.1.4.1.11129.2.1.17") ?: return AttestationResult("Software", isLocked = false, verifiedBootState = "Unknown", serials = serials, isGoogleRoot = isGoogleRoot, rootSubject = rootSubject)
 
         val derStr = extensionData.joinToString("") { "%02x".format(it) }
         
         var securityLevel = "Software"
         var deviceLocked = false
+        var verifiedBootState = "Unknown"
 
         if (derStr.contains("0a0101")) securityLevel = "TEE"
         if (derStr.contains("0a0102")) securityLevel = "StrongBox"
         if (derStr.contains("0101ff")) deviceLocked = true
+        
+        // Parsing VerifiedBootState (ENUMERATED): 0:Verified, 1:Self-signed, 2:Unverified, 3:Failed
+        when {
+            derStr.contains("0a0100") -> verifiedBootState = "Verified"
+            derStr.contains("0a0101") && derStr.indexOf("0a0101") != derStr.lastIndexOf("0a0101") -> verifiedBootState = "Self-signed"
+            derStr.contains("0a0102") && derStr.indexOf("0a0102") != derStr.lastIndexOf("0a0102") -> verifiedBootState = "Unverified"
+            derStr.contains("0a0103") -> verifiedBootState = "Failed"
+        }
 
-        return AttestationResult(securityLevel, deviceLocked, serials, isGoogleRoot, rootSubject)
+        return AttestationResult(securityLevel, deviceLocked, verifiedBootState, serials, isGoogleRoot, rootSubject)
     } catch (e: Exception) {
-        return AttestationResult("Error", false, emptyList(), false, e.message ?: "Unknown Error")
+        return AttestationResult("Error", isLocked = false, verifiedBootState = "Error", serials = emptyList(), isGoogleRoot = false, rootSubject = e.message ?: "Unknown Error")
     }
 }
 
