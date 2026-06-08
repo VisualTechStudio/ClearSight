@@ -35,6 +35,7 @@ ClearSight（明澈之眼）是一款 Android 设备安全检测应用，旨在�
 | 机型 | 系统版本 | 是否移植包 | Root方案 | 工作状态 |
 |------|---------|-----------|---------|---------|
 | OnePlus 15 (Infiniti CN) | ColorOS 16.0.8.301 (Android 16) | 否 | KowSU LKM | 工作正常且全部通过 |
+| Vivo X100 Pro (Light CN) | OriginOS PD2324F_A_16.2.10.1.W10.V000L1 (Android 16) | 否 | 无 | 工作正常但Key异常 |
 | OnePlus Ace 3 Pro (Corvette CN) | ColorOS 16.0.5.501 (Android 16) | 否 | ReSukiSU GKI | 工作正常且全部通过 |
 | OnePlus Ace 3 Pro (Corvette CN) | ColorOS 16.0.7.207 (Android 16) | CoolApk@空白没有输 | KernelSU LKM | 工作正常且全部通过 |
 | Redmi K40 (Alioth CN) | HyperOS 3.0 (Android 16) | 未知 | FolkPatch Full | 工作正常且全部通过 |
