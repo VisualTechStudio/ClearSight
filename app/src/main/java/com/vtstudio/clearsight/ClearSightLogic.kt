@@ -29,6 +29,8 @@ var revocationFetchDate by mutableStateOf("未获取")
 var revocationEntryCount by mutableIntStateOf(0)
 var revocationUpdateResult by mutableStateOf("未更新")
 
+private val appFallbackNames = mutableMapOf<String, String>()
+
 data class CheckSubItem(
     val rawPath: String,
     val cleanPath: String,
@@ -37,7 +39,7 @@ data class CheckSubItem(
     val checkMethod: String,
     val result: String? = null,
     val appName: String? = null,
-    val appIcon: Drawable? = null
+    val appIcon: Drawable? = null,
 )
 
 data class CheckCategory(val name: String, val subItems: List<CheckSubItem>, val hasIssue: Boolean)
@@ -46,6 +48,27 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
     initRevocationList(context)
     val fileLines = readConfFile(context, "check.conf")
     val appLines = readConfFile(context, "appcheck.conf")
+    
+    // Load cross-check and fallback names from crosscheck.conf
+    appFallbackNames.clear()
+    val crossCheckMap = mutableMapOf<String, MutableList<String>>()
+    val crossCheckLines = readConfFile(context, "crosscheck.conf")
+    for (line in crossCheckLines) {
+        val parts = line.split(":")
+        if (parts.size >= 2) {
+            val pkg = parts[0].trim()
+            val name = parts[1].trim()
+            if (name.isNotEmpty()) {
+                appFallbackNames[pkg] = name
+            }
+            if (parts.size >= 3) {
+                val path = parts[2].trim()
+                if (path.isNotEmpty()) {
+                    crossCheckMap.getOrPut(pkg) { mutableListOf() }.add(path)
+                }
+            }
+        }
+    }
 
     val hasRootPermission = checkRootPermission()
 
@@ -108,10 +131,6 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
     }
 
     val fileResults = fileSubItems.associateBy { it.cleanPath }
-    val crossCheckMap = mapOf(
-        "bin.mt.plus" to listOf("/sdcard/MT2"),
-        "com.omarea.vtools" to listOf("/dev/scene", "/dev/cpuset/scene-daemon")
-    )
 
     for ((pkgName, paths) in crossCheckMap) {
         val triggeringPath = paths.find { fileResults[it]?.isFound == true }
@@ -214,7 +233,7 @@ fun resolveAppIdentity(context: Context, pkgName: String, hasRoot: Boolean): Pai
         val appInfo = pm.getApplicationInfo(pkgName, 0)
         val label = appInfo.loadLabel(pm).toString()
         val icon = appInfo.loadIcon(pm)
-        if (label.isNotEmpty() && label != pkgName) return Pair(label, icon)
+        if (label.isNotEmpty() && (label != pkgName)) return Pair(label, icon)
     } catch (_: Exception) {}
 
     if (hasRoot) {
@@ -241,17 +260,7 @@ fun resolveAppIdentity(context: Context, pkgName: String, hasRoot: Boolean): Pai
         }
     }
 
-    val fallbackName = when (pkgName) {
-        "bin.mt.plus" -> "MT管理器"
-        "com.omarea.vtools" -> "Scene"
-        "com.topjohnwu.magisk" -> "Magisk"
-        "io.github.truboxl.helis" -> "HMA"
-        "com.tsng.hidemyapplist" -> "HMA"
-        "org.frknkrc44.hma_oss" -> "HMA"
-        "com.catchingnow.icebox" -> "冰箱"
-        "com.vmos.glow" -> "VMOS"
-        else -> null
-    }
+    val fallbackName = appFallbackNames[pkgName]
     return Pair(fallbackName, defaultAppIcon)
 }
 
@@ -343,7 +352,7 @@ fun getBuildInfo(context: Context): String {
         val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
         val isDebug = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
         val type = if (isDebug) "debug" else "release"
-        val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+        val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             packageInfo.longVersionCode
         } else {
             @Suppress("DEPRECATION")
@@ -401,7 +410,7 @@ fun checkKeyAttestation(): AttestationResult {
         kpg.generateKeyPair()
 
         val chain = keyStore.getCertificateChain(alias)
-        if (chain == null || chain.isEmpty()) return AttestationResult("Unknown", false, emptyList(), false, "No Chain")
+        if (chain == null || chain.isEmpty()) return AttestationResult("Unknown", isLocked = false, serials = emptyList(), isGoogleRoot = false, rootSubject = "No Chain")
 
         val rootCert = chain.last() as X509Certificate
         val rootSubject = rootCert.subjectDN.name
@@ -422,7 +431,7 @@ fun checkKeyAttestation(): AttestationResult {
         val serials = (0 until chain.size - 1).map { (chain[it] as X509Certificate).serialNumber.toString(16).lowercase() }
 
         val leafCert = chain[0] as X509Certificate
-        val extensionData = leafCert.getExtensionValue("1.3.6.1.4.1.11129.2.1.17") ?: return AttestationResult("Software", false, serials, isGoogleRoot, rootSubject)
+        val extensionData = leafCert.getExtensionValue("1.3.6.1.4.1.11129.2.1.17") ?: return AttestationResult("Software", isLocked = false, serials = serials, isGoogleRoot = isGoogleRoot, rootSubject = rootSubject)
 
         val derStr = extensionData.joinToString("") { "%02x".format(it) }
         
@@ -472,15 +481,15 @@ fun fetchRevocationList(context: Context) {
                 cacheFile.writeText(jsonString) 
             } catch (_: Exception) {}
         } else {
-            if (cachedRevocationList != null) revocationUpdateResult = "更新失败,使用缓存"
-            else revocationUpdateResult = "失败 (${connection.responseCode})"
+            revocationUpdateResult = if (cachedRevocationList != null) "更新失败,使用缓存"
+            else "失败 (${connection.responseCode})"
         }
-    } catch (e: java.net.SocketTimeoutException) {
-        if (cachedRevocationList != null) revocationUpdateResult = "超时,使用缓存"
-        else revocationUpdateResult = "超时"
-    } catch (e: Exception) {
-        if (cachedRevocationList != null) revocationUpdateResult = "更新失败,使用缓存"
-        else revocationUpdateResult = "失败"
+    } catch (_: java.net.SocketTimeoutException) {
+        revocationUpdateResult = if (cachedRevocationList != null) "超时,使用缓存"
+        else "超时"
+    } catch (_: Exception) {
+        revocationUpdateResult = if (cachedRevocationList != null) "更新失败,使用缓存"
+        else "失败"
     }
 }
 
@@ -516,17 +525,17 @@ data class PatchResult(val patchDate: String, val isOutdated: Boolean)
 
 fun checkSecurityPatch(): PatchResult {
     val patch = Build.VERSION.SECURITY_PATCH
-    if (patch.isNullOrEmpty()) return PatchResult("Unknown", true)
+    if (patch.isNullOrEmpty()) return PatchResult("Unknown", isOutdated = true)
     
-    try {
+    return try {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val patchDate = sdf.parse(patch) ?: return PatchResult(patch, true)
+        val patchDate = sdf.parse(patch) ?: return PatchResult(patch, isOutdated = true)
         val sixMonthsAgo = Calendar.getInstance()
         sixMonthsAgo.add(Calendar.MONTH, -6)
         val isOutdated = patchDate.before(sixMonthsAgo.time)
-        return PatchResult(patch, isOutdated)
-    } catch (e: Exception) {
-        return PatchResult(patch, true)
+        PatchResult(patch, isOutdated)
+    } catch (_: Exception) {
+        PatchResult(patch, isOutdated = true)
     }
 }
 

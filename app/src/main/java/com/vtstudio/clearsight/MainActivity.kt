@@ -1,12 +1,9 @@
 package com.vtstudio.clearsight
 
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
@@ -36,7 +33,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -72,7 +68,6 @@ fun ClearSightScreen() {
             }
         )
     }
-    val hasRootPermission = remember { checkRootPermission() }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) { fetchRevocationList(context) }
@@ -98,39 +93,18 @@ fun ClearSightScreen() {
         }
     }
 
-    var backProgress by remember { mutableFloatStateOf(0f) }
-
-    PredictiveBackHandler { progress ->
-        try {
-            progress.collect { event ->
-                backProgress = event.progress
-            }
-            (context as? ComponentActivity)?.finish()
-        } finally {
-            backProgress = 0f
-        }
-    }
-
     Box(modifier = Modifier
         .fillMaxSize()
         .background(backgroundColor)
         .statusBarsPadding()
         .navigationBarsPadding()
-        .graphicsLayer {
-            val scale = 1f - (backProgress * 0.08f)
-            scaleX = scale
-            scaleY = scale
-            translationX = backProgress * 100f
-            shape = RoundedCornerShape((backProgress * 32).dp)
-            clip = backProgress > 0f
-        }
         .drawWithContent {
             drawContent()
             val rotation = -30f
             drawIntoCanvas { canvas ->
                 val nativeCanvas = canvas.nativeCanvas
-                for (x in -200..size.width.toInt() + 200 step 500) {
-                    for (y in 0..size.height.toInt() + 500 step 400) {
+                for (x in (-200..(size.width.toInt() + 200)) step 500) {
+                    for (y in (0..(size.height.toInt() + 500)) step 400) {
                         nativeCanvas.save()
                         nativeCanvas.rotate(rotation, x.toFloat(), y.toFloat())
                         nativeCanvas.drawText(watermarkText, x.toFloat(), y.toFloat(), watermarkPaint)
@@ -141,16 +115,13 @@ fun ClearSightScreen() {
         }
     ) {
         MainContent(
-            context = context,
             isDark = isDark,
             categories = categories,
-            hasRootPermission = hasRootPermission,
             onRefresh = { refreshTrigger++ },
             onOpenSettings = { context.startActivity(Intent(context, SettingsActivity::class.java)) },
             version = version,
             buildInfo = buildInfo,
             deviceInfo = deviceInfo,
-            backgroundColor = backgroundColor,
             titleColor = titleColor,
             subTitleColor = subTitleColor
         )
@@ -158,7 +129,7 @@ fun ClearSightScreen() {
 }
 
 @Composable
-fun DeviceInfoSection(info: DeviceInfoSummary, isDark: Boolean, titleColor: Color) {
+fun DeviceInfoSection(info: DeviceInfoSummary, isDark: Boolean) {
     val subTextColor = if (isDark) Color(0xFFAAAAAA) else Color(0xFF666666)
     val labelColor = if (isDark) Color(0xFF888888) else Color(0xFF999999)
     
@@ -190,16 +161,13 @@ fun InfoRow(label: String, value: String, labelColor: Color, valueColor: Color) 
 
 @Composable
 fun MainContent(
-    context: Context,
     isDark: Boolean,
     categories: List<CheckCategory>,
-    hasRootPermission: Boolean,
     onRefresh: () -> Unit,
     onOpenSettings: () -> Unit,
     version: String,
     buildInfo: String,
     deviceInfo: DeviceInfoSummary,
-    backgroundColor: Color,
     titleColor: Color,
     subTitleColor: Color
 ) {
@@ -277,7 +245,7 @@ fun MainContent(
 
         Spacer(modifier = Modifier.height(16.dp))
         
-        DeviceInfoSection(deviceInfo, isDark, titleColor)
+        DeviceInfoSection(deviceInfo, isDark)
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -289,7 +257,12 @@ fun MainContent(
                 val catSuspicious = category.subItems.any { !it.isCritical && it.isFound }
                 val categoryIconColor = if (catCritical) Color(0xFFEF4444) else if (catSuspicious) Color(0xFFFF9500) else Color(0xFF34C759)
                 val categoryStatusText = if (catCritical) "异常" else if (catSuspicious) "可疑" else "正常"
-                val visibleItems = remember(category.subItems) { category.subItems.filter { it.isFound }.sortedByDescending { it.isCritical } }
+                val visibleItems = remember(category.subItems) { 
+                    category.subItems.asSequence()
+                        .filter { it.isFound }
+                        .sortedByDescending { it.isCritical }
+                        .toList()
+                }
 
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { if (index < expandedStates.size) expandedStates[index] = !isExpanded },
