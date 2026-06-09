@@ -1,7 +1,6 @@
 package com.vtstudio.clearsight
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,7 +23,6 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -32,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -56,13 +53,13 @@ fun ClearSightScreen() {
     var refreshTrigger by remember { mutableIntStateOf(0) }
     val categories = remember(refreshTrigger) {
         val loaded = loadAllCategories(context)
-        val defaultOrder = listOf("Bootloader/TEE/Key", "System properties", "Apps", "Files")
+        val defaultOrder = listOf("Bootloader/TEE/Key", "Memory Integrity", "System properties", "Apps", "Files")
         
         loaded.sortedWith(
             compareByDescending<CheckCategory> { cat ->
-                cat.subItems.any { it.isCritical && it.isFound }
+                cat.subItems.any { it.isFound && it.isCritical }
             }.thenByDescending { cat ->
-                cat.subItems.any { !it.isCritical && it.isFound }
+                cat.subItems.any { it.isFound && !it.isCritical }
             }.thenBy { cat ->
                 defaultOrder.indexOf(cat.name).takeIf { it >= 0 } ?: Int.MAX_VALUE
             }
@@ -93,24 +90,25 @@ fun ClearSightScreen() {
         }
     }
 
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .background(backgroundColor)
-        .drawWithContent {
-            drawContent()
-            val rotation = -30f
-            drawIntoCanvas { canvas ->
-                val nativeCanvas = canvas.nativeCanvas
-                for (x in (-200..(size.width.toInt() + 200)) step 500) {
-                    for (y in (0..(size.height.toInt() + 500)) step 400) {
-                        nativeCanvas.save()
-                        nativeCanvas.rotate(rotation, x.toFloat(), y.toFloat())
-                        nativeCanvas.drawText(watermarkText, x.toFloat(), y.toFloat(), watermarkPaint)
-                        nativeCanvas.restore()
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundColor)
+            .drawWithContent {
+                drawContent()
+                val rotation = -30f
+                drawIntoCanvas { canvas ->
+                    val nativeCanvas = canvas.nativeCanvas
+                    for (x in (-200..(size.width.toInt() + 200)) step 500) {
+                        for (y in (0..(size.height.toInt() + 500)) step 400) {
+                            nativeCanvas.save()
+                            nativeCanvas.rotate(rotation, x.toFloat(), y.toFloat())
+                            nativeCanvas.drawText(watermarkText, x.toFloat(), y.toFloat(), watermarkPaint)
+                            nativeCanvas.restore()
+                        }
                     }
                 }
             }
-        }
     ) {
         MainContent(
             isDark = isDark,
@@ -121,7 +119,7 @@ fun ClearSightScreen() {
             buildInfo = buildInfo,
             deviceInfo = deviceInfo,
             titleColor = titleColor,
-            subTitleColor = subTitleColor
+            subTitleColor = subTitleColor,
         )
     }
 }
@@ -135,7 +133,7 @@ fun DeviceInfoSection(info: DeviceInfoSummary, isDark: Boolean) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             InfoRow("Device", info.device, labelColor, subTextColor)
@@ -156,7 +154,6 @@ fun InfoRow(label: String, value: String, labelColor: Color, valueColor: Color) 
     }
 }
 
-
 @Composable
 fun MainContent(
     isDark: Boolean,
@@ -167,7 +164,7 @@ fun MainContent(
     buildInfo: String,
     deviceInfo: DeviceInfoSummary,
     titleColor: Color,
-    subTitleColor: Color
+    subTitleColor: Color,
 ) {
     val hasCriticalIssue = remember(categories) { categories.any { cat -> cat.subItems.any { it.isCritical && it.isFound } } }
     val hasSuspiciousIssue = remember(categories) { categories.any { cat -> cat.subItems.any { !it.isCritical && it.isFound } } }
@@ -189,7 +186,7 @@ fun MainContent(
     val textColor = if (isDark) Color(0xFFE3E3E3) else Color(0xFF2C2C2E)
 
     var showInfoDialogForCategory by remember { mutableStateOf<CheckCategory?>(null) }
-    val expandedStates = remember(categories.size) { mutableStateListOf<Boolean>().apply { repeat(categories.size) { add(true) } } }
+    val expandedStates = remember(categories.size) { mutableStateListOf<Boolean>().apply { repeat(categories.size) { add(element = true) } } }
 
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -201,9 +198,9 @@ fun MainContent(
                 top = statusBarPadding + 16.dp,
                 bottom = navBarPadding + 16.dp,
                 start = 16.dp,
-                end = 16.dp
+                end = 16.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -214,14 +211,14 @@ fun MainContent(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier.size(40.dp).background(if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), shape = RoundedCornerShape(20.dp)).clickable { onRefresh() },
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.Center,
                         ) { Text("↻", fontSize = 24.sp, color = titleColor, modifier = Modifier.offset(y = (-2).dp)) }
                         
                         Spacer(modifier = Modifier.width(12.dp))
                         
                         Box(
                             modifier = Modifier.size(40.dp).background(if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), shape = RoundedCornerShape(20.dp)).clickable { onOpenSettings() },
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.Center,
                         ) { Text("⚙", fontSize = 20.sp, color = titleColor) }
                     }
                 }
@@ -233,7 +230,7 @@ fun MainContent(
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
+                        verticalAlignment = Alignment.Bottom,
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(text = statusText, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (hasCriticalIssue) Color(0xFFEF4444) else textColor)
@@ -279,7 +276,7 @@ fun MainContent(
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { if (index < expandedStates.size) expandedStates[index] = !isExpanded },
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = categoryBg)
+                    colors = CardDefaults.cardColors(containerColor = categoryBg),
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -305,7 +302,7 @@ fun MainContent(
                                 visibleItems.forEach { subItem ->
                                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                                         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                                            if (category.name == "Apps" && subItem.appIcon != null) {
+                                            if ((category.name == "Apps") && (subItem.appIcon != null)) {
                                                 Image(bitmap = subItem.appIcon.toBitmap(width = 48, height = 48).asImageBitmap(), contentDescription = null, modifier = Modifier.padding(end = 10.dp).size(24.dp))
                                             }
                                             Column {
@@ -313,7 +310,7 @@ fun MainContent(
                                                     Text(text = if (subItem.isCritical) "[危险] " else "[可疑] ", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (subItem.isCritical) Color(0xFFEF4444) else Color(0xFFFF9500))
                                                     Text(text = subItem.appName ?: subItem.cleanPath, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = titleColor)
                                                 }
-                                                if ((category.name == "Bootloader/TEE/Key" || category.name == "System properties") && subItem.result != null) {
+                                                if (((category.name == "Bootloader/TEE/Key") || (category.name == "System properties")) && (subItem.result != null)) {
                                                     Text(text = "返回值: ${subItem.result}", fontSize = 10.sp, color = subTitleColor.copy(alpha = 0.7f), modifier = Modifier.padding(top = 2.dp))
                                                 }
                                                 Text(text = "方法: ${subItem.checkMethod}", fontSize = 10.sp, color = subTitleColor.copy(alpha = 0.7f), modifier = Modifier.padding(top = 1.dp))
@@ -331,12 +328,17 @@ fun MainContent(
     }
 
     showInfoDialogForCategory?.let { category ->
-        val dialogCleanItems = remember(category.subItems) { category.subItems.filter { !it.isFound }.sortedByDescending { it.isCritical } }
+        val dialogCleanItems = remember(category.subItems) { 
+            category.subItems.asSequence()
+                .filter { !it.isFound }
+                .sortedByDescending { it.isCritical }
+                .toList()
+        }
         val dialogBg = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
         AlertDialog(
             onDismissRequest = { showInfoDialogForCategory = null },
             confirmButton = { TextButton(onClick = { showInfoDialogForCategory = null }) { Text("确定", color = Color(0xFF34C759), fontWeight = FontWeight.Bold) } },
-            title = { Text(text = when(category.name) { "Files" -> "未检测到的风险文件"; "Apps" -> "未检测到的风险App"; "Bootloader/TEE/Key" -> "硬件与密钥安全详情"; "System properties" -> "系统属性详情"; else -> category.name }, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = titleColor) },
+            title = { Text(text = when(category.name) { "Files" -> "未检测到的风险文件"; "Apps" -> "未检测到的风险App"; "Bootloader/TEE/Key" -> "硬件与密钥安全详情"; "System properties" -> "系统属性详情"; "Memory Integrity" -> "内存完整性详情"; else -> category.name }, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = titleColor) },
             text = {
                 if (dialogCleanItems.isEmpty()) { Text("所有配置的风险拦截项均已触发异常。", color = subTitleColor, fontSize = 13.sp) }
                 else {
@@ -344,10 +346,10 @@ fun MainContent(
                         items(dialogCleanItems) { item ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                                    if (category.name == "Apps" && item.appIcon != null) { Image(bitmap = item.appIcon.toBitmap(width = 40, height = 40).asImageBitmap(), contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(20.dp)) }
+                                    if ((category.name == "Apps") && (item.appIcon != null)) { Image(bitmap = item.appIcon.toBitmap(width = 40, height = 40).asImageBitmap(), contentDescription = null, modifier = Modifier.padding(end = 8.dp).size(20.dp)) }
                                     Column {
                                         Text(text = item.appName ?: item.cleanPath, fontSize = 12.sp, color = titleColor, fontWeight = FontWeight.Medium)
-                                        if ((category.name == "Bootloader/TEE/Key" || category.name == "System properties") && item.result != null) { Text(text = "返回值: ${item.result}", fontSize = 9.sp, color = Color(0xFF34C759).copy(alpha = 0.7f), modifier = Modifier.padding(top = 2.dp)) }
+                                        if (((category.name == "Bootloader/TEE/Key") || (category.name == "System properties")) && (item.result != null)) { Text(text = "返回值: ${item.result}", fontSize = 9.sp, color = Color(0xFF34C759).copy(alpha = 0.7f), modifier = Modifier.padding(top = 2.dp)) }
                                         Text(text = "方法: ${item.checkMethod}", fontSize = 9.sp, color = Color(0xFF34C759).copy(alpha = 0.7f), modifier = Modifier.padding(top = 1.dp))
                                     }
                                 }
@@ -358,7 +360,7 @@ fun MainContent(
                 }
             },
             containerColor = dialogBg,
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(16.dp),
         )
     }
 }

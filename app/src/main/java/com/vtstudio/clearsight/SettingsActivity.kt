@@ -45,7 +45,7 @@ fun SettingsScreen(onBack: () -> Unit, context: Context, isDark: Boolean, titleC
     val version = getAppVersion(context)
     val buildInfo = getBuildInfo(context).split("-").firstOrNull() ?: "release"
     val cardBg = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
-    var isUpdating by remember { mutableStateOf(false) }
+    var isUpdating by remember { mutableStateOf(value = false) }
     val scope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize().background(backgroundColor).statusBarsPadding().navigationBarsPadding().padding(16.dp)) {

@@ -49,7 +49,6 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
     val fileLines = readConfFile(context, "check.conf")
     val appLines = readConfFile(context, "appcheck.conf")
     
-    // Load cross-check and fallback names from crosscheck.conf
     appFallbackNames.clear()
     val crossCheckMap = mutableMapOf<String, MutableList<String>>()
     val crossCheckLines = readConfFile(context, "crosscheck.conf")
@@ -80,14 +79,16 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
         val items = mutableListOf<CheckSubItem>()
         val attestation = checkKeyAttestation()
         
-        items.add(CheckSubItem(
-            rawPath = "Attestation Security Level",
-            cleanPath = "硬件密钥库等级",
-            isFound = attestation.securityLevel == "Software",
-            isCritical = attestation.securityLevel == "Software",
-            checkMethod = "Android Key Attestation API",
-            result = "Level: ${attestation.securityLevel}"
-        ))
+        items.add(
+            CheckSubItem(
+                rawPath = "Attestation Security Level",
+                cleanPath = "硬件密钥库等级",
+                isFound = attestation.securityLevel == "Software",
+                isCritical = attestation.securityLevel == "Software",
+                checkMethod = "Android Key Attestation API",
+                result = "Level: ${attestation.securityLevel}",
+            ),
+        )
 
         val teeImpl = when {
             File("/dev/trusty-ipc-dev0").exists() -> "Trusty (Google)"
@@ -95,57 +96,67 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
             File("/dev/teetz").exists() -> "TEE (MediaTek)"
             else -> "Generic TEE"
         }
-        val isTeeHealthy = attestation.securityLevel != "Software" && 
-                          attestation.verifiedBootState == "Verified" && 
-                          attestation.isLocked
+        val isTeeHealthy = (attestation.securityLevel != "Software") && 
+                          (attestation.verifiedBootState == "Verified") && 
+                          (attestation.isLocked)
 
-        items.add(CheckSubItem(
-            rawPath = "TEE OS",
-            cleanPath = "TEE 可信执行环境",
-            isFound = !isTeeHealthy,
-            isCritical = true,
-            checkMethod = "TrustZone / Secure World",
-            result = if (isTeeHealthy) "正常 ($teeImpl)" 
-                     else "受损 (${attestation.verifiedBootState} / ${attestation.securityLevel})"
-        ))
+        items.add(
+            CheckSubItem(
+                rawPath = "TEE OS",
+                cleanPath = "TEE 可信执行环境",
+                isFound = !isTeeHealthy,
+                isCritical = true,
+                checkMethod = "TrustZone / Secure World",
+                result = if (isTeeHealthy) "正常 ($teeImpl)" 
+                         else "损坏(${attestation.verifiedBootState} / ${attestation.securityLevel})",
+            ),
+        )
 
-        items.add(CheckSubItem(
-            rawPath = "Device Locked",
-            cleanPath = "设备引导加载程序(Bootloader)已解锁",
-            isFound = !attestation.isLocked,
-            isCritical = !attestation.isLocked,
-            checkMethod = "Hardware Attestation (ASN.1)",
-            result = if (attestation.isLocked) "Locked (Secure)" else "Unlocked"
-        ))
+        items.add(
+            CheckSubItem(
+                rawPath = "Device Locked",
+                cleanPath = "设备引导加载程序(Bootloader)已解锁",
+                isFound = !attestation.isLocked,
+                isCritical = !attestation.isLocked,
+                checkMethod = "Hardware Attestation (ASN.1)",
+                result = if (attestation.isLocked) "Locked (Secure)" else "Unlocked",
+            ),
+        )
 
         val revocationStatus = checkRevocation(attestation.serials)
-        items.add(CheckSubItem(
-            rawPath = "Key Revocation",
-            cleanPath = "密钥状态",
-            isFound = revocationStatus != "VALID",
-            isCritical = revocationStatus == "REVOKED",
-            checkMethod = "Google CRL Status List",
-            result = "Status: $revocationStatus"
-        ))
+        items.add(
+            CheckSubItem(
+                rawPath = "Key Revocation",
+                cleanPath = "密钥状态",
+                isFound = revocationStatus != "VALID",
+                isCritical = revocationStatus == "REVOKED",
+                checkMethod = "Google CRL Status List",
+                result = "Status: $revocationStatus",
+            ),
+        )
 
-        items.add(CheckSubItem(
-            rawPath = "Key Authenticity",
-            cleanPath = "密钥类型",
-            isFound = !attestation.isGoogleRoot,
-            isCritical = !attestation.isGoogleRoot,
-            checkMethod = "Root CA Verification",
-            result = if (attestation.isGoogleRoot) "Official: ${attestation.rootSubject}" else "AOSP/Test: ${attestation.rootSubject}"
-        ))
+        items.add(
+            CheckSubItem(
+                rawPath = "Key Authenticity",
+                cleanPath = "密钥类型",
+                isFound = !attestation.isGoogleRoot,
+                isCritical = !attestation.isGoogleRoot,
+                checkMethod = "Root CA Verification",
+                result = if (attestation.isGoogleRoot) "Official: ${attestation.rootSubject}" else "AOSP/Test: ${attestation.rootSubject}",
+            ),
+        )
 
         val patchCheck = checkSecurityPatch()
-        items.add(CheckSubItem(
-            rawPath = "Security Patch Level",
-            cleanPath = "Android安全补丁",
-            isFound = patchCheck.isOutdated,
-            isCritical = false,
-            checkMethod = "System Build API",
-            result = "Patch: ${patchCheck.patchDate}"
-        ))
+        items.add(
+            CheckSubItem(
+                rawPath = "Security Patch Level",
+                cleanPath = "Android安全补丁",
+                isFound = patchCheck.isOutdated,
+                isCritical = false,
+                checkMethod = "System Build API",
+                result = "Patch: ${patchCheck.patchDate}",
+            ),
+        )
 
         items
     }
@@ -156,64 +167,125 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
         process.inputStream.bufferedReader().use { it.readLine()?.trim() ?: "Enforcing" }
     } catch (_: Exception) { "Enforcing" }
 
-    systemSubItems.add(CheckSubItem(
-        rawPath = "SELinux Status",
-        cleanPath = "SELinux",
-        isFound = selinuxStatus != "Enforcing",
-        isCritical = selinuxStatus != "Enforcing",
-        checkMethod = "Shell getenforce",
-        result = selinuxStatus
-    ))
+    systemSubItems.add(
+        CheckSubItem(
+            rawPath = "SELinux Status",
+            cleanPath = "SELinux",
+            isFound = selinuxStatus != "Enforcing",
+            isCritical = selinuxStatus != "Enforcing",
+            checkMethod = "Shell getenforce",
+            result = selinuxStatus,
+        ),
+    )
 
     val adbEnabled = android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.ADB_ENABLED, 0) != 0
-    systemSubItems.add(CheckSubItem(
-        rawPath = "USB Debugging",
-        cleanPath = "USB 调试",
-        isFound = adbEnabled,
-        isCritical = false,
-        checkMethod = "Settings.Global",
-        result = if (adbEnabled) "Enabled" else "Disabled"
-    ))
+    systemSubItems.add(
+        CheckSubItem(
+            rawPath = "USB Debugging",
+            cleanPath = "USB 调试",
+            isFound = adbEnabled,
+            isCritical = false,
+            checkMethod = "Settings.Global",
+            result = if (adbEnabled) "Enabled" else "Disabled",
+        ),
+    )
 
     val devMode = android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) != 0
-    systemSubItems.add(CheckSubItem(
-        rawPath = "Developer Options",
-        cleanPath = "开发者选项",
-        isFound = devMode,
-        isCritical = false,
-        checkMethod = "Settings.Global",
-        result = if (devMode) "Enabled" else "Disabled"
-    ))
+    systemSubItems.add(
+        CheckSubItem(
+            rawPath = "Developer Options",
+            cleanPath = "开发者选项",
+            isFound = devMode,
+            isCritical = false,
+            checkMethod = "Settings.Global",
+            result = if (devMode) "Enabled" else "Disabled",
+        ),
+    )
 
-    // Pre-add system entries from crosscheck.conf as "Normal"
     for ((pkg, name) in appFallbackNames) {
-        if (pkg.startsWith("system.")) {
-            systemSubItems.add(CheckSubItem(
-                rawPath = pkg,
-                cleanPath = name,
-                isFound = false,
-                isCritical = false,
-                checkMethod = "System Integrity Check",
-                result = "Normal"
-            ))
+        val isPandora = pkg.contains("pandora", ignoreCase = true) || name.contains("Pandora", ignoreCase = true)
+        if (pkg.startsWith("system.") && !isPandora) {
+            systemSubItems.add(
+                CheckSubItem(
+                    rawPath = pkg,
+                    cleanPath = name,
+                    isFound = false,
+                    isCritical = false,
+                    checkMethod = "System Integrity Check",
+                    result = "Normal",
+                )
+            )
         }
     }
+
+    val kernelLines = readConfFile(context, "kernelcheck.conf")
+    val fullKernelVersion = try { File("/proc/version").readText().trim() } catch (_: Exception) { System.getProperty("os.version") ?: "Unknown" }
+    
+    val kernelVersion = fullKernelVersion
+        .removePrefix("Linux version ")
+        .split(" ", "(")
+        .firstOrNull() ?: fullKernelVersion
+    
+    var kernelIssueFound = false
+    val matchedRules = mutableListOf<String>()
+
+    if (File("/dev/pandora").exists()) {
+        kernelIssueFound = true
+        matchedRules.add("Pandora Node")
+    }
+
+    for (line in kernelLines) {
+        if (line.startsWith("#")) continue
+        val parts = line.split(":", limit = 2)
+        if (parts.isNotEmpty()) {
+            val type = parts[0].trim()
+            val pattern = if (parts.size == 2) parts[1].trim() else ""
+            
+            var match = false
+            when (type) {
+                "NON_ASCII" -> if (kernelVersion.any { it.code > 127 }) match = true
+                "REGEX" -> if (pattern.isNotEmpty() && Regex(pattern).containsMatchIn(kernelVersion)) match = true
+                "LITERAL" -> if (pattern.isNotEmpty() && kernelVersion.contains(pattern, ignoreCase = true)) match = true
+            }
+            if (match) {
+                kernelIssueFound = true
+                matchedRules.add(if (type == "NON_ASCII") "Non-ASCII" else pattern)
+                break
+            }
+        }
+    }
+
+    systemSubItems.add(
+        CheckSubItem(
+            rawPath = "Custom Kernel",
+            cleanPath = "Custom Kernel",
+            isFound = kernelIssueFound, 
+            isCritical = true,
+            checkMethod = if (kernelIssueFound) matchedRules.joinToString(" + ") else "Kernel Name Analysis",
+            result = if (kernelIssueFound) kernelVersion else "Official / Clean",
+        )
+    )
 
     val fileResults = fileSubItems.associateBy { it.cleanPath }
 
     for ((id, paths) in crossCheckMap) {
-        val triggeringPath = paths.find { fileResults[id]?.isFound == true || fileResults[it]?.isFound == true }
-        if (triggeringPath != null) {
+        val triggeringPaths = paths.filter { fileResults[it]?.isFound == true }
+        if (triggeringPaths.isNotEmpty()) {
+            val triggeringPath = triggeringPaths.first()
+            
             if (id.startsWith("system.")) {
-                val index = systemSubItems.indexOfFirst { it.rawPath == id }
                 val displayName = appFallbackNames[id] ?: id.removePrefix("system.")
+                val isPandora = id.contains("pandora", ignoreCase = true) || displayName.contains("Pandora", ignoreCase = true)
+                if (isPandora) continue
+                
+                val index = systemSubItems.indexOfFirst { it.rawPath == id }
                 val newItem = CheckSubItem(
                     rawPath = id,
                     cleanPath = displayName,
                     isFound = true,
                     isCritical = true,
                     checkMethod = "File Trace: $triggeringPath",
-                    result = "$displayName"
+                    result = displayName,
                 )
                 if (index != -1) {
                     systemSubItems[index] = newItem
@@ -221,19 +293,23 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
                     systemSubItems.add(newItem)
                 }
             } else {
-                val existingIndex = appSubItems.indexOfFirst { it.cleanPath == id }
                 val identity = resolveAppIdentity(context, id, hasRootPermission)
+                val displayName = identity.first ?: appFallbackNames[id] ?: id
+                
+                val existingIndex = appSubItems.indexOfFirst { it.cleanPath == id || it.appName == displayName }
 
                 if (existingIndex != -1) {
                     val originalItem = appSubItems[existingIndex]
-                    appSubItems[existingIndex] = originalItem.copy(
-                        isFound = true,
-                        isCritical = true,
-                        checkMethod = "File Trace: $triggeringPath",
-                        result = "Matched Trace: $triggeringPath",
-                        appName = identity.first ?: originalItem.appName,
-                        appIcon = identity.second ?: originalItem.appIcon
-                    )
+                    if (!originalItem.isFound || !originalItem.checkMethod.startsWith("File Trace:")) {
+                        appSubItems[existingIndex] = originalItem.copy(
+                            isFound = true,
+                            isCritical = true,
+                            checkMethod = "File Trace: $triggeringPath",
+                            result = "Matched Trace: $triggeringPath",
+                            appName = displayName,
+                            appIcon = identity.second ?: originalItem.appIcon,
+                        )
+                    }
                 } else {
                     appSubItems.add(
                         CheckSubItem(
@@ -243,8 +319,8 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
                             isCritical = true,
                             checkMethod = "File Trace: $triggeringPath",
                             result = "Matched Trace: $triggeringPath",
-                            appName = identity.first,
-                            appIcon = identity.second
+                            appName = displayName,
+                            appIcon = identity.second,
                         )
                     )
                 }
@@ -252,12 +328,50 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
         }
     }
 
+    val memorySubItems = checkMemoryIntegrity()
+
     return listOf(
         CheckCategory(name = "Files", subItems = fileSubItems, hasIssue = fileSubItems.any { it.isFound }),
         CheckCategory(name = "Apps", subItems = appSubItems, hasIssue = appSubItems.any { it.isFound }),
         CheckCategory(name = "Bootloader/TEE/Key", subItems = securitySubItems, hasIssue = securitySubItems.any { it.isFound }),
-        CheckCategory(name = "System properties", subItems = systemSubItems, hasIssue = systemSubItems.any { it.isFound })
+        CheckCategory(name = "System properties", subItems = systemSubItems, hasIssue = systemSubItems.any { it.isFound }),
+        CheckCategory(name = "Memory Integrity", subItems = memorySubItems, hasIssue = memorySubItems.any { it.isFound })
     )
+}
+
+fun checkMemoryIntegrity(): List<CheckSubItem> {
+    val items = mutableListOf<CheckSubItem>()
+    val mapsFile = File("/proc/self/maps")
+    
+    var anonymousExecutableFound = false
+    var anonCount = 0
+    try {
+        mapsFile.forEachLine { line ->
+            val parts = line.split(Regex("\\s+"))
+            if (parts.size >= 4) {
+                val perms = parts[1]
+                val pathname = if (parts.size > 5) parts.last() else ""
+                
+                if (perms.contains("x") && pathname.isEmpty()) {
+                    anonymousExecutableFound = true
+                    anonCount++
+                }
+            }
+        }
+    } catch (_: Exception) {}
+
+    items.add(
+        CheckSubItem(
+            rawPath = "Anon Exec",
+            cleanPath = "检测到Hook(内存异常)",
+            isFound = anonymousExecutableFound,
+            isCritical = true,
+            checkMethod = "Memory maps(/proc/self/maps)",
+            result = if (anonymousExecutableFound) "发现 $anonCount 处匿名 r-xp 注入" else "未发现",
+        )
+    )
+
+    return items
 }
 
 fun readConfFile(context: Context, fileName: String): List<String> {
@@ -309,7 +423,7 @@ fun processCategoryItems(context: Context, lines: List<String>, isAppCheck: Bool
             isCritical = isCritical,
             checkMethod = res.second,
             appName = fetchedName,
-            appIcon = fetchedIcon
+            appIcon = fetchedIcon,
         )
     }
 }
@@ -336,7 +450,7 @@ fun resolveAppIdentity(context: Context, pkgName: String, hasRoot: Boolean): Pai
                 appInfo.publicSourceDir = apkPath
                 val label = appInfo.loadLabel(pm).toString()
                 val icon = appInfo.loadIcon(pm)
-                if (icon != null && icon != defaultAppIcon) return Pair(label, icon)
+                if ((icon != null) && (icon != defaultAppIcon)) return Pair(label, icon)
                 try {
                     val res = pm.getResourcesForApplication(appInfo)
                     if (appInfo.icon != 0) {
@@ -533,7 +647,6 @@ fun checkKeyAttestation(): AttestationResult {
         if (derStr.contains("0a0102")) securityLevel = "StrongBox"
         if (derStr.contains("0101ff")) deviceLocked = true
         
-        // Parsing VerifiedBootState (ENUMERATED): 0:Verified, 1:Self-signed, 2:Unverified, 3:Failed
         when {
             derStr.contains("0a0100") -> verifiedBootState = "Verified"
             derStr.contains("0a0101") && derStr.indexOf("0a0101") != derStr.lastIndexOf("0a0101") -> verifiedBootState = "Self-signed"
@@ -574,7 +687,6 @@ fun fetchRevocationList(context: Context) {
             revocationFetchDate = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
             revocationUpdateResult = "更新成功"
             
-            // Save to cache
             try { 
                 val cacheFile = File(context.cacheDir, "revocation_list.json")
                 cacheFile.writeText(jsonString) 
@@ -665,13 +777,12 @@ fun getDeviceInfoSummary(): DeviceInfoSummary {
 
     val hardware = Build.HARDWARE
     val board = Build.BOARD
-    val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "Unknown" // Use primary ABI for cleaner look
+    val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "Unknown"
+
     val hardwareStr = "$hardware $board ($abi)"
 
-    // Get detailed kernel info from /proc/version
     val kernelStr = try {
         File("/proc/version").readText().trim().let {
-            // Shorten kernel string if it's too long, focus on version and date
             if (it.length > 100) it.take(100) + "..." else it
         }
     } catch (_: Exception) {
@@ -696,6 +807,6 @@ fun getDeviceInfoSummary(): DeviceInfoSummary {
         android = osStr,
         os = osStr,
         fingerprint = fingerprint,
-        security = securityStr
+        security = securityStr,
     )
 }
