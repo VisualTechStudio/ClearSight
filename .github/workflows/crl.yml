@@ -1,0 +1,36 @@
+name: Fetch Android Attestation CRL
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch: 
+
+jobs:
+  update-crl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 拉取最新的 CRL.json
+        run: |
+          # 使用 curl 下载状态文件，并覆盖写入到根目录的 CRL.json
+          curl -sL "https://android.googleapis.com/attestation/status" -o CRL.json
+          
+      - name: 检查文件是否有更新
+        id: git-check
+        run: |
+          # 检查 CRL.json 是否发生了变化，如果有变化则设置 changed=true
+          git diff --exit-code CRL.json || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: 提交并推送代码
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add CRL.json
+          git commit -m "chore: auto-update Android Attestation CRL.json"
+          git push
