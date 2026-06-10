@@ -183,8 +183,8 @@ fun SettingsScreen(onBack: () -> Unit, context: Context, isDark: Boolean, titleC
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), thickness = 0.5.dp, color = subTitleColor.copy(alpha = 0.2f))
                 SettingsSwitch(
-                    label = "使用镜像服务器",
-                    subLabel = "若官方源连接困难可尝试开启",
+                    label = "使用镜像",
+                    subLabel = "若无法连接Google可开启",
                     checked = useMirrorServer,
                     onCheckedChange = { checked ->
                         useMirrorServer = checked
