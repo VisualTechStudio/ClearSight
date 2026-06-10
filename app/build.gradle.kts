@@ -48,9 +48,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.miuix.ui)
-    implementation(libs.miuix.preference)
-    implementation(libs.miuix.icons)
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib") {
         version { strictly("2.3.0") }

@@ -243,7 +243,7 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
 
     if (File("/dev/pandora").exists()) {
         kernelIssueFound = true
-        matchedRules.add("Pandora Node")
+        matchedRules.add("found /dev/pandora")
     }
 
     for (line in kernelLines) {

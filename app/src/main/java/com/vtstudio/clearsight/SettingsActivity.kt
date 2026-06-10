@@ -116,7 +116,7 @@ fun SettingsScreen(onBack: () -> Unit, context: Context, isDark: Boolean, titleC
         Text(text = "检测设置", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = subTitleColor, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
 
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = cardBg), elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                 SettingsSwitch(
                     label = "省去无关紧要的检查",
                     subLabel = "跳过安全补丁、USB调试及开发者选项检测",
@@ -134,10 +134,38 @@ fun SettingsScreen(onBack: () -> Unit, context: Context, isDark: Boolean, titleC
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "连接状态", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = subTitleColor, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
+        Text(text = "证书吊销数据", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = subTitleColor, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
 
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = cardBg), elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                SettingsSwitch(
+                    label = "每次启动检测吊销列表",
+                    checked = checkRevocationOnStartup,
+                    onCheckedChange = { checked ->
+                        checkRevocationOnStartup = checked
+                        context.getSharedPreferences("clearsight_prefs", Context.MODE_PRIVATE)
+                            .edit().putBoolean("check_revocation_on_startup", checked).apply()
+                    },
+                    titleColor = titleColor,
+                    subTitleColor = subTitleColor,
+                    isDark = isDark
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), thickness = 0.5.dp, color = subTitleColor.copy(alpha = 0.2f))
+                SettingsSwitch(
+                    label = "使用镜像",
+                    subLabel = "无法连接Google官方服务器时使用",
+                    checked = useMirrorServer,
+                    onCheckedChange = { checked ->
+                        useMirrorServer = checked
+                        context.getSharedPreferences("clearsight_prefs", Context.MODE_PRIVATE)
+                            .edit().putBoolean("use_mirror_server", checked).apply()
+                    },
+                    titleColor = titleColor,
+                    subTitleColor = subTitleColor,
+                    isDark = isDark
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp, color = subTitleColor.copy(alpha = 0.2f))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -158,43 +186,9 @@ fun SettingsScreen(onBack: () -> Unit, context: Context, isDark: Boolean, titleC
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), contentColor = titleColor)
                     ) {
-                        Text(if (isTestingLatency) "检测中..." else "刷新延迟", fontSize = 12.sp)
+                        Text(if (isTestingLatency) "检测中..." else "刷新", fontSize = 12.sp)
                     }
                 }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "证书吊销数据", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = subTitleColor, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
-
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = cardBg), elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                SettingsSwitch(
-                    label = "每次启动检测吊销列表",
-                    checked = checkRevocationOnStartup,
-                    onCheckedChange = { checked ->
-                        checkRevocationOnStartup = checked
-                        context.getSharedPreferences("clearsight_prefs", Context.MODE_PRIVATE)
-                            .edit().putBoolean("check_revocation_on_startup", checked).apply()
-                    },
-                    titleColor = titleColor,
-                    subTitleColor = subTitleColor,
-                    isDark = isDark
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), thickness = 0.5.dp, color = subTitleColor.copy(alpha = 0.2f))
-                SettingsSwitch(
-                    label = "使用镜像",
-                    subLabel = "若无法连接Google可开启",
-                    checked = useMirrorServer,
-                    onCheckedChange = { checked ->
-                        useMirrorServer = checked
-                        context.getSharedPreferences("clearsight_prefs", Context.MODE_PRIVATE)
-                            .edit().putBoolean("use_mirror_server", checked).apply()
-                    },
-                    titleColor = titleColor,
-                    subTitleColor = subTitleColor,
-                    isDark = isDark
-                )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp, color = subTitleColor.copy(alpha = 0.2f))
                 SettingsRow(label = "证书吊销数据", value = revocationFetchDate, titleColor = titleColor, subTitleColor = subTitleColor)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -212,11 +206,11 @@ fun SettingsScreen(onBack: () -> Unit, context: Context, isDark: Boolean, titleC
 
 @Composable
 fun SettingsSwitch(label: String, subLabel: String? = null, checked: Boolean, onCheckedChange: (Boolean) -> Unit, titleColor: Color, subTitleColor: Color, isDark: Boolean) {
-    Row(modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp).padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Column(modifier = Modifier.weight(1f).padding(vertical = 2.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 0.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(text = label, fontSize = 14.sp, color = titleColor, lineHeight = 18.sp)
             if (subLabel != null) {
-                Text(text = subLabel, fontSize = 11.sp, color = subTitleColor, lineHeight = 14.sp)
+                Text(text = subLabel, fontSize = 11.sp, color = subTitleColor, lineHeight = 13.sp, modifier = Modifier.padding(top = 1.dp))
             }
         }
         Switch(
