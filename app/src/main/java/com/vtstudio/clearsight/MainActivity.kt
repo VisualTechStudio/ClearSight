@@ -67,8 +67,10 @@ fun ClearSightScreen() {
     }
 
     LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) { fetchRevocationList(context) }
-        refreshTrigger++
+        if (checkRevocationOnStartup) {
+            withContext(Dispatchers.IO) { fetchRevocationList(context) }
+            refreshTrigger++
+        }
     }
 
     val startTime = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date()) }

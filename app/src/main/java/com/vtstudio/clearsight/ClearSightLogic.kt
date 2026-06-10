@@ -29,6 +29,8 @@ var revocationFetchDate by mutableStateOf("未获取")
 var revocationEntryCount by mutableIntStateOf(0)
 var revocationUpdateResult by mutableStateOf("未更新")
 var skipInsignificantChecks by mutableStateOf(false)
+var checkRevocationOnStartup by mutableStateOf(true)
+var useMirrorServer by mutableStateOf(true)
 
 private val appFallbackNames = mutableMapOf<String, String>()
 
@@ -48,6 +50,8 @@ data class CheckCategory(val name: String, val subItems: List<CheckSubItem>, val
 fun loadAllCategories(context: Context): List<CheckCategory> {
     val prefs = context.getSharedPreferences("clearsight_prefs", Context.MODE_PRIVATE)
     skipInsignificantChecks = prefs.getBoolean("skip_insignificant", false)
+    checkRevocationOnStartup = prefs.getBoolean("check_revocation_on_startup", true)
+    useMirrorServer = prefs.getBoolean("use_mirror_server", true)
 
     initRevocationList(context)
     val fileLines = readConfFile(context, "check.conf")
@@ -675,13 +679,42 @@ data class RevocationList(val entries: Map<String, RevocationEntry>)
 data class RevocationEntry(val status: String, val reason: String? = null)
 
 private var cachedRevocationList: RevocationList? = null
+var googleApiLatency by mutableStateOf("未检测")
+var mirrorServerLatency by mutableStateOf("未检测")
+
+fun measureLatencies() {
+    val urls = listOf(
+        "Google API" to "https://android.googleapis.com/attestation/status",
+        "镜像服务器" to "https://cdn.jsdelivr.net/gh/VisualTechStudio/ClearSight@main/CRL.json"
+    )
+
+    urls.forEach { (name, urlStr) ->
+        val start = System.currentTimeMillis()
+        try {
+            val url = URL(urlStr)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "HEAD" // Use HEAD to minimize data transfer
+            connection.connectTimeout = 3000
+            connection.readTimeout = 3000
+            connection.connect()
+            val end = System.currentTimeMillis()
+            val latency = "${end - start}ms"
+            if (name == "Google API") googleApiLatency = latency else mirrorServerLatency = latency
+            connection.disconnect()
+        } catch (_: Exception) {
+            if (name == "Google API") googleApiLatency = "超时/失败" else mirrorServerLatency = "超时/失败"
+        }
+    }
+}
+
 private val jsonParser = Json { ignoreUnknownKeys = true }
 
 fun fetchRevocationList(context: Context) {
     initRevocationList(context)
 
     try {
-        val url = URL("https://android.googleapis.com/attestation/status")
+        val urlString = if (useMirrorServer) "https://cdn.jsdelivr.net/gh/VisualTechStudio/ClearSight@main/CRL.json" else "https://android.googleapis.com/attestation/status"
+        val url = URL(urlString)
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
         connection.connectTimeout = 5000
@@ -722,7 +755,7 @@ fun initRevocationList(context: Context) {
             cachedRevocationList = decoded
             revocationEntryCount = decoded.entries.size
             revocationFetchDate = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(cacheFile.lastModified()))
-            revocationUpdateResult = "已加载缓存"
+            revocationUpdateResult = "使用缓存"
         } catch (_: Exception) {}
     }
 }
