@@ -48,6 +48,17 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.miuix.ui)
+    implementation(libs.miuix.preference)
+    implementation(libs.miuix.icons)
+
+    implementation("org.jetbrains.kotlin:kotlin-stdlib") {
+        version { strictly("2.3.0") }
+    }
+    implementation("org.jetbrains.kotlin:kotlin-reflect") {
+        version { strictly("2.3.0") }
+    }
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

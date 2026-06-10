@@ -28,6 +28,7 @@ import java.util.*
 var revocationFetchDate by mutableStateOf("未获取")
 var revocationEntryCount by mutableIntStateOf(0)
 var revocationUpdateResult by mutableStateOf("未更新")
+var skipInsignificantChecks by mutableStateOf(false)
 
 private val appFallbackNames = mutableMapOf<String, String>()
 
@@ -45,6 +46,9 @@ data class CheckSubItem(
 data class CheckCategory(val name: String, val subItems: List<CheckSubItem>, val hasIssue: Boolean)
 
 fun loadAllCategories(context: Context): List<CheckCategory> {
+    val prefs = context.getSharedPreferences("clearsight_prefs", Context.MODE_PRIVATE)
+    skipInsignificantChecks = prefs.getBoolean("skip_insignificant", false)
+
     initRevocationList(context)
     val fileLines = readConfFile(context, "check.conf")
     val appLines = readConfFile(context, "appcheck.conf")
@@ -146,17 +150,19 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
             ),
         )
 
-        val patchCheck = checkSecurityPatch()
-        items.add(
-            CheckSubItem(
-                rawPath = "Security Patch Level",
-                cleanPath = "Android安全补丁",
-                isFound = patchCheck.isOutdated,
-                isCritical = false,
-                checkMethod = "System Build API",
-                result = "Patch: ${patchCheck.patchDate}",
-            ),
-        )
+        if (!skipInsignificantChecks) {
+            val patchCheck = checkSecurityPatch()
+            items.add(
+                CheckSubItem(
+                    rawPath = "Security Patch Level",
+                    cleanPath = "Android安全补丁",
+                    isFound = patchCheck.isOutdated,
+                    isCritical = false,
+                    checkMethod = "System Build API",
+                    result = "Patch: ${patchCheck.patchDate}",
+                ),
+            )
+        }
 
         items
     }
@@ -178,29 +184,31 @@ fun loadAllCategories(context: Context): List<CheckCategory> {
         ),
     )
 
-    val adbEnabled = android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.ADB_ENABLED, 0) != 0
-    systemSubItems.add(
-        CheckSubItem(
-            rawPath = "USB Debugging",
-            cleanPath = "USB 调试",
-            isFound = adbEnabled,
-            isCritical = false,
-            checkMethod = "Settings.Global",
-            result = if (adbEnabled) "Enabled" else "Disabled",
-        ),
-    )
+    if (!skipInsignificantChecks) {
+        val adbEnabled = android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.ADB_ENABLED, 0) != 0
+        systemSubItems.add(
+            CheckSubItem(
+                rawPath = "USB Debugging",
+                cleanPath = "USB 调试",
+                isFound = adbEnabled,
+                isCritical = false,
+                checkMethod = "Settings.Global",
+                result = if (adbEnabled) "Enabled" else "Disabled",
+            ),
+        )
 
-    val devMode = android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) != 0
-    systemSubItems.add(
-        CheckSubItem(
-            rawPath = "Developer Options",
-            cleanPath = "开发者选项",
-            isFound = devMode,
-            isCritical = false,
-            checkMethod = "Settings.Global",
-            result = if (devMode) "Enabled" else "Disabled",
-        ),
-    )
+        val devMode = android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) != 0
+        systemSubItems.add(
+            CheckSubItem(
+                rawPath = "Developer Options",
+                cleanPath = "开发者选项",
+                isFound = devMode,
+                isCritical = false,
+                checkMethod = "Settings.Global",
+                result = if (devMode) "Enabled" else "Disabled",
+            ),
+        )
+    }
 
     for ((pkg, name) in appFallbackNames) {
         val isPandora = pkg.contains("pandora", ignoreCase = true) || name.contains("Pandora", ignoreCase = true)

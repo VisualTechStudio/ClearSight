@@ -68,6 +68,27 @@ fun SettingsScreen(onBack: () -> Unit, context: Context, isDark: Boolean, titleC
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+        Text(text = "检测设置", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = subTitleColor, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
+
+        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = cardBg), elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "省去无关紧要的检查", fontSize = 14.sp, color = titleColor)
+                    Text(text = "跳过安全补丁、USB调试及开发者选项检测", fontSize = 11.sp, color = subTitleColor)
+                }
+                Switch(
+                    checked = skipInsignificantChecks,
+                    onCheckedChange = { checked ->
+                        skipInsignificantChecks = checked
+                        context.getSharedPreferences("clearsight_prefs", Context.MODE_PRIVATE)
+                            .edit().putBoolean("skip_insignificant", checked).apply()
+                    },
+                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = if (isDark) Color(0xFF34C759) else Color(0xFF28CD41))
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
         Text(text = "证书吊销数据", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = subTitleColor, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
 
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = cardBg), elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)) {

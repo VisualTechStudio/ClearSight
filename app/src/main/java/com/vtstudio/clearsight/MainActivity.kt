@@ -51,7 +51,7 @@ fun ClearSightScreen() {
     val isDark = isSystemInDarkTheme()
     
     var refreshTrigger by remember { mutableIntStateOf(0) }
-    val categories = remember(refreshTrigger) {
+    val categories = remember(refreshTrigger, skipInsignificantChecks) {
         val loaded = loadAllCategories(context)
         val defaultOrder = listOf("Bootloader/TEE/Key", "Memory Integrity", "System properties", "Apps", "Files")
         
@@ -213,9 +213,9 @@ fun MainContent(
                             modifier = Modifier.size(40.dp).background(if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), shape = RoundedCornerShape(20.dp)).clickable { onRefresh() },
                             contentAlignment = Alignment.Center,
                         ) { Text("↻", fontSize = 24.sp, color = titleColor, modifier = Modifier.offset(y = (-2).dp)) }
-                        
+
                         Spacer(modifier = Modifier.width(12.dp))
-                        
+
                         Box(
                             modifier = Modifier.size(40.dp).background(if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA), shape = RoundedCornerShape(20.dp)).clickable { onOpenSettings() },
                             contentAlignment = Alignment.Center,
@@ -237,7 +237,7 @@ fun MainContent(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(text = "V $version", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = textColor.copy(alpha = 0.5f))
                         }
-                        
+
                         Column(horizontalAlignment = Alignment.End) {
                             val buildTypeStr = if (buildInfo.startsWith("debug")) "DEBUG" else "RELEASE"
                             Text(text = "BUILD", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = textColor.copy(alpha = 0.4f))
@@ -254,7 +254,7 @@ fun MainContent(
                     }
                 }
             }
-            
+
             item {
                 DeviceInfoSection(deviceInfo, isDark)
             }
@@ -266,7 +266,7 @@ fun MainContent(
                 val catSuspicious = category.subItems.any { !it.isCritical && it.isFound }
                 val categoryIconColor = if (catCritical) Color(0xFFEF4444) else if (catSuspicious) Color(0xFFFF9500) else Color(0xFF34C759)
                 val categoryStatusText = if (catCritical) "异常" else if (catSuspicious) "可疑" else "正常"
-                val visibleItems = remember(category.subItems) { 
+                val visibleItems = remember(category.subItems) {
                     category.subItems.asSequence()
                         .filter { it.isFound }
                         .sortedByDescending { it.isCritical }
