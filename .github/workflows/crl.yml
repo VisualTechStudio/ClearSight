@@ -1,0 +1,35 @@
+name: Fetch Android Attestation CRL
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch: 
+
+jobs:
+  update-crl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 拉取最新的 CRL.json
+        run: |
+          curl -sL "https://android.googleapis.com/attestation/status" -o CRL.json
+          
+      - name: 提交并推送代码
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          git add CRL.json
+          
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: auto-update Android Attestation CRL.json"
+            git push
+            echo "✅ CRL.json 更新并推送成功！"
+          else
+            echo "💤 CRL.json 内容无变化，无需推送。"
+          fi
