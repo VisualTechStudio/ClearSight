@@ -562,6 +562,20 @@ fun getAppVersion(context: Context): String {
     } catch (_: Exception) { "1.0.0" }
 }
 
+fun getAppVersionCode(context: Context): Long {
+    return try {
+        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageInfo.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            packageInfo.versionCode.toLong()
+        }
+    } catch (_: Exception) {
+        0L
+    }
+}
+
 fun getBuildInfo(context: Context): String {
     return try {
         val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
@@ -693,13 +707,21 @@ fun measureLatencies() {
         try {
             val url = URL(urlStr)
             val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "HEAD" // Use HEAD to minimize data transfer
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Range", "bytes=0-0")
             connection.connectTimeout = 3000
             connection.readTimeout = 3000
             connection.connect()
-            val end = System.currentTimeMillis()
-            val latency = "${end - start}ms"
-            if (name == "Google API") googleApiLatency = latency else mirrorServerLatency = latency
+            
+            val responseCode = connection.responseCode
+            if (responseCode in 200..299) {
+                val end = System.currentTimeMillis()
+                val latency = "${end - start}ms"
+                if (name == "Google API") googleApiLatency = latency else mirrorServerLatency = latency
+            } else {
+                val errorMsg = "错误 $responseCode"
+                if (name == "Google API") googleApiLatency = errorMsg else mirrorServerLatency = errorMsg
+            }
             connection.disconnect()
         } catch (_: Exception) {
             if (name == "Google API") googleApiLatency = "超时/失败" else mirrorServerLatency = "超时/失败"
@@ -814,7 +836,27 @@ fun getDeviceInfoSummary(): DeviceInfoSummary {
     val deviceName = Build.DEVICE
     val model = Build.MODEL
 
-    val deviceStr = "$brand $model ($product $deviceName)"
+    val isOnePlus = brand.equals("OnePlus", ignoreCase = true)
+    val marketName = if (isOnePlus) {
+        val oplusName = getSystemProperty("ro.vendor.oplus.market.name")
+        if (oplusName.isNotEmpty()) oplusName else getSystemProperty("ro.product.marketname")
+    } else {
+        getSystemProperty("ro.product.marketname")
+    }
+
+    val deviceStr = if (isOnePlus) {
+        if (marketName.isNotEmpty()) {
+            "$marketName ($product $deviceName)"
+        } else {
+            "$model ($product $deviceName)"
+        }
+    } else {
+        if (marketName.isNotEmpty()) {
+            "$marketName ($product $deviceName)"
+        } else {
+            "$brand $model ($product $deviceName)"
+        }
+    }
 
     val hardware = Build.HARDWARE
     val board = Build.BOARD
