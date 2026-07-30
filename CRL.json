@@ -6911,14 +6911,6 @@
     "8561666443580248416": {
       "status": "REVOKED",
       "reason": "KEY_COMPROMISE"
-    },
-    "b84c8d317d9a09e35d40cec2191cc4": {
-      "status": "REVOKED",
-      "reason": "KEY_COMPROMISE"
-    },
-    "787f5e274f9925379a98b34cb0cf67e6": {
-      "status": "REVOKED",
-      "reason": "KEY_COMPROMISE"
     }
   }
 }
