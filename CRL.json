@@ -6927,14 +6927,6 @@
     "883205cf28799fc6ef7365642fd7c54d": {
       "status": "REVOKED",
       "reason": "KEY_COMPROMISE"
-    },
-    "11610935928638367897": {
-      "status": "REVOKED",
-      "reason": "KEY_COMPROMISE"
-    },
-    "10515316999625153609": {
-      "status": "REVOKED",
-      "reason": "KEY_COMPROMISE"
     }
   }
 }
