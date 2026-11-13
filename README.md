@@ -1,18 +1,34 @@
 <div align="center">
-             <img src="./logo.png" />
-             <h1>ClearSight (明澈之眼) For Android</h1>
-             帮助您检查Android设备是否处于可信环境
-             <br>
-             <br>
-             <img src="https://img.shields.io/github/release/VisualTechStudio/ClearSight" />
-             <img src="https://img.shields.io/github/downloads/VisualTechStudio/ClearSight/total?color=white&style=plastic" />
-             <img src="https://img.shields.io/github/stars/VisualTechStudio/ClearSight" />
-             <br>
-             <br>
-             <a href="README_en_US.md">🇬🇧 English Readme</a>
+
+<img src="./logo.png" width="200" />
+<h1>ClearSight (明澈之眼) For Android</h1>
+帮助您检查Android设备是否处于可信环境
+
+# 本仓库已于 2026/11/13 归档
+
+**为什么**
+
+**代码可维护性低：** 仓库中包含过高比例的 AI 生成代码，缺乏严谨的架构设计与低耦合约束，不具备持续迭代的价值。<br>
+**检测机制失效：** 受限于维护者当前的技术栈边界，现有的特征匹配检测算法不足，易被常规手段轻松绕过。
+
+**替代方案**
+
+建议迁移至 **[Duck Detector](https://github.com/eltavine/Duck-Detector-Refactoring)**
+
+**代码维护**
+
+ClearSight将继续保持开源，以供参考或延续
+
+
+<img src="https://img.shields.io/github/release/VisualTechStudio/ClearSight" />
+<img src="https://img.shields.io/github/downloads/VisualTechStudio/ClearSight/total?color=white&style=plastic" />
+<img src="https://img.shields.io/github/stars/VisualTechStudio/ClearSight" />
+<br>
+<br>
 </div>
 
 ---
+
 
 # ClearSight 技术文档
 
